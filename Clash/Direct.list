@@ -1,5 +1,9 @@
 # 直连补充列表(国内域名不解析时，防止走代理使用)
 
+# 樱花动漫
+DOMAIN-SUFFIX,mxdm.xyz
+DOMAIN-SUFFIX,yinghuazy.xyz
+
 # MyList
 # 域名后缀匹配
 DOMAIN-SUFFIX,time.windows.com
