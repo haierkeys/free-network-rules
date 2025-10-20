@@ -1,0 +1,367 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2025 OpenWrt
+
+START=99
+STOP=15
+
+BIN="/usr/bin/sing-box"
+WORK_DIR="/data/"
+CONFIG_FILE="/data/config.json"
+TEMP_CONFIG="/tmp/singbox_temp.json"
+BIN_RUN="$BIN run -c $CONFIG_FILE"
+BIN_CHECK="$BIN check -c $TEMP_CONFIG"
+RUN_DIR="/var/run/homeproxy"
+
+LOG_FILE="/data/box.log"
+CHECK_INTERVAL=600  # s
+
+random_string=$(openssl rand -hex 8)
+CONFIG_URL="https://sb.diybeta.com/?password=haierspi!!@$&type=linux&random=${random_string}"
+
+
+# we don't know which is the default server, just take the first one
+DNSMASQ_UCI_CONFIG="$(uci -q show "dhcp.@dnsmasq[0]" | awk 'NR==1 {split($0, conf, /[.=]/); print conf[2]}')"
+if [ -f "/tmp/etc/dnsmasq.conf.$DNSMASQ_UCI_CONFIG" ]; then
+	DNSMASQ_DIR="$(awk -F '=' '/^conf-dir=/ {print $2}' "/tmp/etc/dnsmasq.conf.$DNSMASQ_UCI_CONFIG")"
+else
+	DNSMASQ_DIR="/tmp/dnsmasq.d"
+fi
+
+
+dnsmasq_add() {
+			cat <<-EOF >> "$DNSMASQ_DIR/singbox-redirect-dns.conf"
+				no-poll
+				no-resolv
+				server=127.0.0.1#$dns_port
+			EOF
+    /etc/init.d/dnsmasq restart >"/dev/null" 2>&1
+}
+
+dnsmasq_remove() {
+    rm -rf "$DNSMASQ_DIR/singbox-redirect-dns.conf"
+    /etc/init.d/dnsmasq restart >"/dev/null" 2>&1
+}
+
+rule_add() {
+    ip rule add fwmark 101 table 100
+    ip route add local 0.0.0.0/0 dev lo table 100
+    # ipv6
+    ip -6 rule add fwmark 101 table 100
+    ip -6 route add local ::/0 dev lo table 100
+
+    cat /data/fw4/forward.nft > "$RUN_DIR/fw4_forward.nft"
+    cat /data/fw4/input.nft > "$RUN_DIR/fw4_input.nft"
+    cat /data/fw4/post.nft > "$RUN_DIR/fw4_post.nft"
+
+    fw4 reload >"/dev/null" 2>&1
+
+}
+
+rule_remove() {
+    ip rule del fwmark 101 table 100 2>"/dev/null"
+    ip route del local 0.0.0.0/0 dev lo table 100 2>"/dev/null"
+    # ipv6
+    ip -6 rule del fwmark 101 table 100 2>"/dev/null"
+    ip -6 route del local ::/0 dev lo table 100 2>"/dev/null"
+
+	# Nftables rules
+	for i in "homeproxy_dstnat_redir" "homeproxy_output_redir" \
+		 "homeproxy_redirect" "homeproxy_redirect_proxy" \
+		 "homeproxy_redirect_proxy_port" "homeproxy_redirect_lanac" \
+		 "homeproxy_mangle_prerouting" "homeproxy_mangle_output" \
+		 "homeproxy_mangle_tproxy" "homeproxy_mangle_tproxy_port" \
+		 "homeproxy_mangle_tproxy_lanac" "homeproxy_mangle_mark" \
+		 "homeproxy_mangle_tun" "homeproxy_mangle_tun_mark"; do
+		nft flush chain inet fw4 "$i"
+		nft delete chain inet fw4 "$i"
+	done 2>"/dev/null"
+	for i in "homeproxy_local_addr_v4" "homeproxy_local_addr_v6" \
+		 "homeproxy_gfw_list_v4" "homeproxy_gfw_list_v6" \
+		 "homeproxy_mainland_addr_v4" "homeproxy_mainland_addr_v6" \
+		 "homeproxy_wan_proxy_addr_v4" "homeproxy_wan_proxy_addr_v6" \
+		 "homeproxy_wan_direct_addr_v4" "homeproxy_wan_direct_addr_v6" \
+		 "homeproxy_routing_port"; do
+		nft flush set inet fw4 "$i"
+		nft delete set inet fw4 "$i"
+	done 2>"/dev/null"
+	echo 2>"/dev/null" > "$RUN_DIR/fw4_forward.nft"
+	echo 2>"/dev/null" > "$RUN_DIR/fw4_input.nft"
+	echo 2>"/dev/null" > "$RUN_DIR/fw4_post.nft"
+	fw4 reload >"/dev/null" 2>&1
+
+}
+
+
+get_pid() {
+    pid=$(pgrep -f "$BIN_RUN" | grep -v $$ )
+    echo "$pid"
+}
+
+download_config() {
+    if command -v curl >/dev/null 2>&1; then
+        DOWNLOADER="curl -s -o $TEMP_CONFIG"
+    elif command -v wget >/dev/null 2>&1; then
+        DOWNLOADER="wget -q -O $TEMP_CONFIG"
+    else
+        echo "Error: curl or wget is required" >&2
+        return 1
+    fi
+
+    $DOWNLOADER "$CONFIG_URL"
+    return $?
+}
+
+
+# 检查文件更新并下载文件，且检测配置文件是否正确，正确则复制到 /data/config.json
+download_and_validate_config() {
+    download_config
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to download configuration file" >&2
+        rm -f "$TEMP_CONFIG"
+        return 1
+    fi
+
+    if $BIN_CHECK >/dev/null 2>&1; then
+        mv "$TEMP_CONFIG" "$CONFIG_FILE"
+        if [ $? -eq 0 ]; then
+            echo "Configuration validated and saved successfully"
+            return 0
+        else
+            echo "Error: Failed to save configuration file" >&2
+            rm -f "$TEMP_CONFIG"
+            return 1
+        fi
+    else
+        echo "Warning: Downloaded configuration is invalid" >&2
+        rm -f "$TEMP_CONFIG"
+        return 1
+    fi
+}
+
+
+# 启动主服务进程（不启动后台检查）
+start_service() {
+    cd $WORK_DIR
+    pid=$(get_pid)
+    if [ -n "$pid" ]; then
+        echo "Service is already running with PID: $pid"
+        return 0
+    fi
+
+    if [ -f "$CONFIG_FILE" ]; then
+        nohup $BIN_RUN > "$LOG_FILE" 2>&1 &
+        if [ $? -eq 0 ]; then
+
+            dnsmasq_add
+            rule_add
+            echo "Sing-box service started successfully"
+            return 0
+        else
+            echo "Error: Failed to start Sing-box" >&2
+            return 1
+        fi
+    else
+        echo "Error: Configuration file not found" >&2
+        return 1
+    fi
+}
+
+
+# 停止主服务进程（不停止后台检查）
+stop_service() {
+
+
+    pid=$(get_pid)
+    if [ -z "$pid" ]; then
+        echo "Service is not running"
+        return 0
+    fi
+
+    dnsmasq_remove
+    rule_remove
+
+    echo "Stopping service (PID: $pid)..."
+    kill "$pid"
+
+    sleep 2
+
+    # 检查是否成功停止
+    pid=$(get_pid)
+    if [ -z "$pid" ]; then
+        echo "Service stopped successfully"
+        return 0
+    else
+        echo "Warning: Service still running, forcing termination..."
+        kill -9 "$pid"
+        sleep 1
+        if [ -z "$(get_pid)" ]; then
+            echo "Service force stopped"
+            return 0
+        else
+            echo "Error: Failed to stop service" >&2
+            return 1
+        fi
+    fi
+}
+
+
+# 启动后台检查进程
+start_background_check() {
+    # 如果后台检查已经在运行，不重复启动
+    if [ -f /var/run/sing-box-check.pid ]; then
+        check_pid=$(cat /var/run/sing-box-check.pid)
+        if [ -n "$check_pid" ] && ps | grep -q "^[[:space:]]*$check_pid"; then
+            echo "Background check is already running with PID: $check_pid"
+            return 0
+        fi
+    fi
+
+    (while true; do
+        sleep "$CHECK_INTERVAL"
+        echo "Checking for configuration updates..."
+        check_and_update
+    done) &
+    CHECK_PID=$!
+    echo "$CHECK_PID" > /var/run/sing-box-check.pid
+    echo "Background configuration check started (PID: $CHECK_PID, every $((CHECK_INTERVAL/60)) minutes)"
+}
+
+
+# 停止后台检查进程
+stop_background_check() {
+    if [ ! -f /var/run/sing-box-check.pid ]; then
+        echo "Background check is not running"
+        return 0
+    fi
+
+    check_pid=$(cat /var/run/sing-box-check.pid)
+    check_t_pid=$(pgrep -P $check_pid)
+
+    if [ -z "$check_pid" ]; then
+        rm -f /var/run/sing-box-check.pid
+        return 0
+    fi
+
+    if ! ps | grep -q "^[[:space:]]*$check_pid"; then
+        echo "Background check process not found, cleaning up PID file"
+        rm -f /var/run/sing-box-check.pid
+        return 0
+    fi
+
+    echo "Stopping background check process (PID: $check_pid, Child PID: $check_t_pid)..."
+    [ -n "$check_pid" ] && kill "$check_pid" 2>/dev/null
+    [ -n "$check_t_pid" ] && kill "$check_t_pid" 2>/dev/null
+    sleep 1
+
+    # 检查是否成功停止
+    if ps | grep -q "^[[:space:]]*$check_pid"; then
+        echo "Warning: Failed to stop background check process, forcing termination..."
+        [ -n "$check_pid" ] && kill -9 "$check_pid" 2>/dev/null
+        [ -n "$check_t_pid" ] && kill -9 "$check_t_pid" 2>/dev/null
+        sleep 1
+    fi
+
+    rm -f /var/run/sing-box-check.pid
+    echo "Background check stopped"
+    return 0
+}
+
+
+check_and_update() {
+    download_config
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to download configuration file" >&2
+        rm -f "$TEMP_CONFIG"
+        return 1
+    fi
+
+    if $BIN_CHECK >/dev/null 2>&1; then
+        if [ -f "$CONFIG_FILE" ] && cmp -s "$TEMP_CONFIG" "$CONFIG_FILE"; then
+            echo "Configuration unchanged, no update needed"
+            rm -f "$TEMP_CONFIG"
+            return 0
+        fi
+
+        mv "$TEMP_CONFIG" "$CONFIG_FILE"
+        if [ $? -eq 0 ]; then
+            echo "Configuration updated successfully"
+            # 停止并重启服务进程（不影响后台检查）
+            stop_service
+            start_service
+            return 0
+        else
+            echo "Error: Failed to update configuration file" >&2
+            rm -f "$TEMP_CONFIG"
+            return 1
+        fi
+    else
+        echo "Warning: Downloaded configuration is invalid, keeping existing configuration" >&2
+        rm -f "$TEMP_CONFIG"
+        return 1
+    fi
+}
+
+
+start() {
+    echo "Starting Sing-box service..."
+
+    # 尝试下载并验证新配置
+    download_and_validate_config
+
+    # 启动主服务
+    start_service
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+
+    # 启动后台检查
+    start_background_check
+}
+
+
+stop() {
+    echo "Stopping Sing-box service..."
+
+    # 停止主服务进程
+    stop_service
+
+    # 停止后台检查进程
+    stop_background_check
+
+    # 最终检查
+    if [ -z "$(get_pid)" ] && [ ! -f /var/run/sing-box-check.pid ]; then
+        echo "All processes stopped successfully"
+        return 0
+    else
+        echo "Warning: Some processes may still be running" >&2
+        return 1
+    fi
+}
+
+
+restart() {
+    stop
+    sleep 1
+    start
+}
+
+
+status() {
+    pid=$(get_pid)
+    if [ -n "$pid" ]; then
+        echo "Service is running with PID: $pid"
+    else
+        echo "Service is not running"
+    fi
+
+    if [ -f /var/run/sing-box-check.pid ]; then
+        check_pid=$(cat /var/run/sing-box-check.pid)
+        if [ -n "$check_pid" ] && ps | grep -q "^[[:space:]]*$check_pid"; then
+            echo "Background check is running with PID: $check_pid"
+        else
+            echo "Background check PID file exists but process not running"
+        fi
+    else
+        echo "Background check is not running"
+    fi
+}
