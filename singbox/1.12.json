@@ -1,1 +1,5 @@
-{{ node1|NodeNameFilter }}
+- {{ node1|NodeNameFilter }}
+- {{ node1|NodeNameFilter:"upper" }}
+- {{ node1|NodeNameFilter:"emoji" }}
+- {{ node2|NodeNameFilter:"flag" }}
+- {{ node3|NodeNameFilter:"flag" }}
