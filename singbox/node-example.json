@@ -1,0 +1,43 @@
+{
+  "outbounds": [
+    {
+      "tag": "美国01",
+      "type": "vless",
+      "server": "192.3.81.8",
+      "server_port": 2667,
+      "uuid": "4543545-65656-65656-90c8-565656",
+      "tls": {
+        "enabled": true,
+        "server_name": "apple.com",
+        "insecure": false,
+        "reality": {
+          "enabled": true,
+          "public_key": "sdfwerdfsdfdsfdsfsdf",
+          "short_id": "fdf"
+        },
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "flow": "xtls-rprx-vision"
+    },
+    {
+      "tag": "美国02",
+      "type": "tuic",
+      "server": "192.3.81.8",
+      "server_port": 2666,
+      "uuid": "121323-d368-4323232323ee3-923230c8-32323",
+      "password": "121323-d368-4323232323ee3-923230c8-32323",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.bing.com",
+        "insecure": false,
+        "alpn": [
+          "h3"
+        ]
+      },
+      "congestion_control": "bbr"
+    }
+  ]
+}
