@@ -132,12 +132,12 @@
   ],
   "outbounds": [
     { "tag": "🚀 节点选择", "type": "selector", "outbounds": ["🐸 手动切换", "♻️ 自动选择", "🇯🇵 日本节点", "🇺🇲 美国节点", "♻️ 🇭🇰 港新自动", "♻️ 🇺🇲 日本自动", "♻️ 🇺🇲 美国自动", "🇭🇰 港新节点", "🎯 全球直连", "🌐 全局代理"] },
-    { "tag": "🐸 手动切换", "type": "selector", "outbounds": [ {{ NotesName }} ] },
+    { "tag": "🐸 手动切换", "type": "selector", "outbounds": [ {{ "" | NotesName }} ] },
 
-    { "tag": "🌐 全局代理", "type": "selector", "outbounds": [ {{ NotesName }} ] },
+    { "tag": "🌐 全局代理", "type": "selector", "outbounds": [ {{ "" | NotesName }} ] },
 
-    { "tag": "♻️ 自动选择", "type": "urltest", "outbounds": [ {{ NotesName }} ], "url": "http://www.gstatic.com/generate_204", "interval": "10m", "tolerance": 50 },
-    { "tag": "🇭🇰 港新节点", "type": "selector", "outbounds": [ {{ "香港|新加坡"| NotesName}} ]  },
+    { "tag": "♻️ 自动选择", "type": "urltest", "outbounds": [ {{ "" | NotesName }} ], "url": "http://www.gstatic.com/generate_204", "interval": "10m", "tolerance": 50 },
+    { "tag": "🇭🇰 港新节点", "type": "selector", "outbounds": [ {{ "香港|新加坡" | NotesName}} ]  },
     { "tag": "🇯🇵 日本节点", "type": "selector", "outbounds": [ {{ "日本"| NotesName }} ] },
     { "tag": "🇺🇲 美国节点", "type": "selector", "outbounds": [ {{ "美国"| NotesName }} ] },
     { "tag": "♻️ 🇭🇰 港新自动", "type": "urltest", "outbounds": [ {{ "香港|新加坡"| NotesName }} ], "url": "http://www.gstatic.com/generate_204", "interval": "10m", "tolerance": 50 },
