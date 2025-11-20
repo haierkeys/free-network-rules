@@ -86,7 +86,7 @@
             "strategy": "prefer_ipv6"
         },
         { "server": "china-dns", "clash_mode": "🎯 全球直连" },
-        { "server": "proxy-dns", "clash_mode": "🌐 全局代理" },
+        { "server": "proxy-dns", "clash_mode": "🚀 节点选择" },
         { "server": "hosts_dns", "ip_accept_any": true },
         { "action": "predefined", "rcode": "NOTIMP", "query_type": [64, 65] },
         { "server": "proxy-dns", "domain": ["googleapis.cn", "gstatic.com"], "domain_suffix": [".googleapis.cn", ".gstatic.com"] },
@@ -136,13 +136,13 @@
 
     { "tag": "🌐 全局代理", "type": "selector", "outbounds": [ {{ "" | NotesName }} ] },
 
-    { "tag": "♻️ 自动选择", "type": "urltest", "outbounds": [ {{ "" | NotesName }} ], "url": "http://www.gstatic.com/generate_204", "interval": "10m", "tolerance": 50 },
+    { "tag": "♻️ 自动选择", "type": "urltest", "outbounds": [ {{ "" | NotesName }} ], "url": "https://cp.cloudflare.com/", "interval": "10m", "tolerance": 50 },
     { "tag": "🇭🇰 港新节点", "type": "selector", "outbounds": [ {{ "香港|新加坡" | NotesName}} ]  },
     { "tag": "🇯🇵 日本节点", "type": "selector", "outbounds": [ {{ "日本"| NotesName }} ] },
     { "tag": "🇺🇲 美国节点", "type": "selector", "outbounds": [ {{ "美国"| NotesName }} ] },
-    { "tag": "♻️ 🇭🇰 港新自动", "type": "urltest", "outbounds": [ {{ "香港|新加坡"| NotesName }} ], "url": "http://www.gstatic.com/generate_204", "interval": "10m", "tolerance": 50 },
-    { "tag": "♻️ 🇺🇲 日本自动", "type": "urltest", "outbounds": [ {{ "日本"| NotesName }} ], "url": "http://www.gstatic.com/generate_204", "interval": "10m", "tolerance": 50 },
-    { "tag": "♻️ 🇺🇲 美国自动", "type": "urltest", "outbounds": [ {{ "美国"| NotesName }} ], "url": "http://www.gstatic.com/generate_204", "interval": "10m", "tolerance": 50 },
+    { "tag": "♻️ 🇭🇰 港新自动", "type": "urltest", "outbounds": [ {{ "香港|新加坡"| NotesName }} ], "url": "https://cp.cloudflare.com/", "interval": "10m", "tolerance": 50 },
+    { "tag": "♻️ 🇺🇲 日本自动", "type": "urltest", "outbounds": [ {{ "日本"| NotesName }} ], "url": "https://cp.cloudflare.com/", "interval": "10m", "tolerance": 50 },
+    { "tag": "♻️ 🇺🇲 美国自动", "type": "urltest", "outbounds": [ {{ "美国"| NotesName }} ], "url": "https://cp.cloudflare.com/", "interval": "10m", "tolerance": 50 },
 
     { "tag": "🎯 全球直连", "type": "direct","routing_mark": 100 },
     { "tag": "block", "type": "block" },
@@ -170,7 +170,6 @@
         { "clash_mode": "🌐 全局代理", "outbound": "🌐 全局代理" },
 
         { "domain": [".diybeta.com","diybeta.com"], "outbound": "🎯 全球直连" },
-        { "domain": ["googleapis.cn", "gstatic.com"], "domain_suffix": [".googleapis.cn", ".gstatic.com"], "outbound": "🎯 全球直连" },
         { "network": ["udp"], "port": [443], "action": "reject" },
 
         {  "ip_cidr": ["223.5.5.5", "223.6.6.6", "2400:3200::1", "2400:3200:baba::1", "119.29.29.29", "1.12.12.12", "120.53.53.53", "2402:4e00::", "2402:4e00:1::", "180.76.76.76", "2400:da00::6666", "114.114.114.114", "114.114.115.115", "114.114.114.119", "114.114.115.119", "114.114.114.110", "114.114.115.110", "180.184.1.1", "180.184.2.2", "101.226.4.6", "218.30.118.6", "123.125.81.6", "140.207.198.6", "1.2.4.8", "210.2.4.8", "52.80.66.66", "117.50.22.22", "2400:7fc0:849e:200::4", "2404:c2c0:85d8:901::4", "117.50.10.10", "52.80.52.52", "2400:7fc0:849e:200::8", "2404:c2c0:85d8:901::8", "117.50.60.30", "52.80.60.30"], "outbound": "🎯 全球直连" },
