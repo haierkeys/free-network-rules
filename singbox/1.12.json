@@ -192,12 +192,13 @@
         { "rule_set": ["geoip-telegram", "geosite-telegram"], "outbound": "📲 Telegram" },
 
 
-        { "rule_set": "geosite-gfw", "outbound": "🚀 节点选择" },
-        { "rule_set": ["geosite-private", "geoip-private"], "outbound": "🎯 全球直连" },
-        { "rule_set": "geosite-geolocation-!cn", "outbound": "🚀 节点选择" },
+
         { "domain": ["us.ip111.cn"], "outbound": "🚀 节点选择" },
-        { "rule_set": ["geosite-cn"], "outbound": "🎯 全球直连" },
-        { "rule_set": ["geoip-cn"], "outbound": "🎯 全球直连" }
+
+        { "rule_set": "geosite-gfw", "outbound": "🚀 节点选择" },
+        { "rule_set": "geosite-geolocation-!cn", "outbound": "🚀 节点选择" },
+        { "rule_set": ["geosite-private", "geoip-private"], "outbound": "🎯 全球直连" },
+        { "rule_set": ["geosite-cn", "geoip-cn"], "outbound": "🎯 全球直连" }
 
     ],
     "rule_set": [
