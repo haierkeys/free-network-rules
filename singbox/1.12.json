@@ -169,6 +169,10 @@
         { "clash_mode": "🎯 全球直连", "outbound": "🎯 全球直连" },
         { "clash_mode": "🌐 全局代理", "outbound": "🌐 全局代理" },
 
+
+        { "protocol": "ssh", "outbound": "🛠️ SSH" },
+        { "port": 22, "outbound": "🛠️ SSH" },
+
         { "domain": [".diybeta.com","diybeta.com"], "outbound": "🎯 全球直连" },
         { "network": ["udp"], "port": [443], "action": "reject" },
 
@@ -187,14 +191,14 @@
         { "rule_set": ["geoip-netflix", "geosite-netflix"], "outbound": "🎥 Netflix" },
         { "rule_set": ["geoip-telegram", "geosite-telegram"], "outbound": "📲 Telegram" },
 
+
+        { "rule_set": "geosite-gfw", "outbound": "🚀 节点选择" },
         { "rule_set": ["geosite-private", "geoip-private"], "outbound": "🎯 全球直连" },
-        { "rule_set": ["geosite-private"], "outbound": "🎯 全球直连" },
         { "rule_set": "geosite-geolocation-!cn", "outbound": "🚀 节点选择" },
         { "domain": ["us.ip111.cn"], "outbound": "🚀 节点选择" },
         { "rule_set": ["geosite-cn"], "outbound": "🎯 全球直连" },
-        { "rule_set": ["geoip-cn"], "outbound": "🎯 全球直连" },
-        { "protocol": "ssh", "outbound": "🛠️ SSH" },
-        { "port": 22, "outbound": "🛠️ SSH" }
+        { "rule_set": ["geoip-cn"], "outbound": "🎯 全球直连" }
+
     ],
     "rule_set": [
         { "tag": "geosite-chat", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/category-ai-chat-!cn.srs", "download_detour": "🚀 节点选择" },
@@ -212,6 +216,7 @@
         { "tag": "geoip-netflix", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/netflix.srs", "download_detour": "🚀 节点选择" },
         { "tag": "geoip-apple", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geoip/apple.srs", "download_detour": "🚀 节点选择" },
 
+        { "tag": "geosite-gfw", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/gfw.srs", "download_detour": "🚀 节点选择" },
         { "tag": "geosite-geolocation-!cn", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/geolocation-!cn.srs", "download_detour": "🚀 节点选择" },
         { "tag": "geosite-cn", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/cn.srs", "download_detour": "🚀 节点选择" },
         { "tag": "geosite-private", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/private.srs", "download_detour": "🚀 节点选择" },
